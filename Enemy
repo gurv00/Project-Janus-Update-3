@@ -1,0 +1,132 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Enemy : MonoBehaviour
+{
+	public int health = 100;
+	public GameObject deathEffect;
+    public float moveSpeed = 10f;
+
+    //enemy AI
+    public Transform target;
+    public float engaugeDistance = 10f;
+    public float attackDistance = 3f;
+    private bool facingLeft = true;
+    public Transform groundDection;
+
+    public GameObject bullet;
+    private PlayerController thePlayer;
+    public Transform launchPoint;
+
+    public float waitBetweenShots;
+    private float shotCounter;
+    public float stoppingDistance;
+
+    private void Start()
+    {
+        thePlayer = FindObjectOfType<PlayerController>();
+
+        shotCounter = waitBetweenShots;
+    }
+
+    void Update()
+    {
+        //Enemy AI
+        ///Enemy can see the player
+        if (Vector3.Distance(target.position, this.transform.position) >= engaugeDistance)
+        {
+            //gets player position
+            Vector3 direction = target.position - this.transform.position;
+            //if player is to the right of enemy
+
+            if (Mathf.Sign(direction.x) == 1 && facingLeft)
+            {
+                Flip();
+            }
+            else if (Mathf.Sign(direction.x) == -1 && !facingLeft)
+            {
+                Flip();
+            }
+            shotCounter -= Time.deltaTime;
+            if (shotCounter <= 0)
+            {
+                Instantiate(bullet, launchPoint.position, launchPoint.rotation);
+                shotCounter = waitBetweenShots;
+            }
+            //if player can be see but not attacked
+            if (direction.magnitude >= attackDistance)
+            {
+                //draws yellow line
+                Debug.DrawLine(target.position, this.transform.position, Color.yellow);
+               
+                //moves the enemy to player
+                if (facingLeft)
+                {
+                    this.transform.Translate(Vector3.left * (Time.deltaTime * moveSpeed));
+
+                }
+                else if (!facingLeft)
+                {
+                    this.transform.Translate(Vector3.right * (Time.deltaTime * moveSpeed));
+                }
+                /////////////////////////////////////if player is see and can be attacked/////////////////////////////////////////
+                if (direction.magnitude < attackDistance)
+                {
+                    //draws red line
+                    Debug.DrawLine(target.position, this.transform.position, Color.red);
+
+                }
+
+            }
+        }
+        ///Enemy Cant see the player
+        else if (Vector3.Distance(target.position, this.transform.position) > engaugeDistance)
+        {
+            //draws green line
+            Debug.DrawLine(target.position, this.transform.position, Color.green);
+            transform.Translate(Vector2.left * moveSpeed * Time.deltaTime);
+            RaycastHit2D groundInfo = Physics2D.Raycast(groundDection.position, Vector2.down,7f);
+            if (groundInfo.collider == false)
+            {
+                if (facingLeft == true)
+                {
+                    transform.eulerAngles = new Vector3(0, -180, 0);
+                    facingLeft = false;
+                }
+                else
+                {
+                    transform.eulerAngles = new Vector3(0, 0, 0);
+                    facingLeft = true;
+                }
+            }
+        }
+    }
+    public void TakeDamage (int damage)
+	{
+		health -= damage;
+
+		if (health <= 0)
+		{
+			Die();
+		}
+
+	}
+
+	void Die()
+	{
+		Instantiate(deathEffect, transform.position, Quaternion.identity);
+		Destroy(gameObject);
+		Debug.Log("Die");
+	}
+
+    //flips the enemy sprite
+    private void Flip()
+    {
+        facingLeft = !facingLeft;
+        Vector3 theScale = transform.localScale;
+        theScale.x *= -1;
+        transform.localScale = theScale;
+
+    }
+}
